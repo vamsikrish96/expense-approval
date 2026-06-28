@@ -1,47 +1,46 @@
 # /implement-slices Skill
 
-Automate implementation of feature slices with testing, progress tracking, and git commits.
+Automate feature slice implementation with testing, progress tracking, and git commits.
 
 ## Overview
 
-This skill provides end-to-end automation for implementing feature slices:
+This skill runs after `/publish-issues` to implement each feature slice:
 
-1. **Sequential Implementation** - Processes slices in order, respecting dependencies
-2. **Automated Testing** - Runs relevant tests for each slice
-3. **Progress Tracking** - Updates PROGRESS.md for visibility
-4. **Git Integration** - Commits changes after successful tests
-5. **Task Management** - Updates Claude Code task list
+1. **Runs tests** for each slice in order
+2. **Tracks progress** in PROGRESS.md (real-time)
+3. **Commits to GitHub** after successful tests
+4. **Updates task list** automatically
+5. **Respects dependencies** (blocked slices)
 
-## Workflow
+## How It Works
+
+The skill invokes Claude Code to:
 
 ```
-/publish-issues
-       ↓
 /implement-slices
-       ↓
-PROGRESS.md (updated)
-       ↓
-GitHub (commits created)
-       ↓
-Task List (updated)
+  ↓
+For each slice:
+  1. Install requirements.txt
+  2. Run tests
+  3. Update PROGRESS.md
+  4. Commit if tests pass
+  5. Update task list
+  ↓
+Final summary in PROGRESS.md
 ```
 
 ## Quick Start
 
-### Basic Usage
-
-```bash
-/implement-slices --repo vamsikrish96/expense-approval
+```
+/implement-slices
 ```
 
-### With Options
-
-```bash
-/implement-slices \
-  --repo vamsikrish96/expense-approval \
-  --progress-file PROGRESS.md \
-  --skip-tests
-```
+That's it! The skill handles:
+- Finding test files
+- Running pytest
+- Tracking progress
+- Creating commits
+- Updating tasks
 
 ## Process for Each Slice
 
@@ -62,50 +61,29 @@ Task List (updated)
    - Continue to next slice
 ```
 
-## Configuration
+## Test Mapping
 
-### Slice-to-Test Mapping
+The skill automatically maps slices to test files:
 
-The skill automatically maps slices to test files. For the Expense Approval API:
+**Expense Approval API:**
 
-| Slice | Tests |
-|-------|-------|
-| 1: Auth | test_auth.py (8 tests) |
-| 2: Models | test_models.py (8 tests) |
-| 3: Database | test_workflows.py (subset) |
-| 4: Error Handling | All error-related tests |
-| 5: Submit | test_submit_expense_workflow |
-| 6: Approve/Reject | test_manager_approve/reject |
-| 7: Process | test_finance_process_expense |
-| 8: Resubmit | test_resubmit_rejected_expense |
-| 9: List/View | test_list_expenses_role_based_filtering |
-| 10: Delete | test_delete_submitted_expense |
-| 11: Audit | test_audit_log_created |
-| 12: E2E | All tests (full suite) |
+| Slice | Test File | Tests |
+|-------|-----------|-------|
+| 1: Auth | test_auth.py | 8 |
+| 2: Models | test_models.py | 8 |
+| 3: Database | test_workflows.py | 3 |
+| 4: Error Handling | Various | Multiple |
+| 5-12 | test_workflows.py | Per-slice |
 
-### Custom Test Mapping
+**See test-mapping.json** for complete mapping with test patterns.
 
-Create a JSON file to map slices to tests:
+### How Test Mapping Works
 
-```json
-{
-  "Slice 1": {
-    "test_file": "tests/test_auth.py"
-  },
-  "Slice 2": {
-    "test_file": "tests/test_models.py"
-  },
-  "Slice 3": {
-    "test_file": "tests/test_workflows.py",
-    "test_pattern": "database"
-  }
-}
-```
-
-Then use:
-```bash
-/implement-slices --repo myorg/myapp --test-map mapping.json
-```
+- Look at slice title
+- Find corresponding test file in test-mapping.json
+- Run: `pytest tests/test_file.py -v`
+- Parse output for pass/fail counts
+- Update PROGRESS.md
 
 ## Example Execution
 
@@ -283,40 +261,35 @@ If requirements.txt installation fails:
 2. User must install manually
 3. Re-run skill after manual fix
 
-## Advanced Features
+## Real-World Example
 
-### Dry-Run Mode
+The Expense Approval API has 12 slices:
 
-```bash
-/implement-slices --repo myorg/myapp --dry-run
 ```
-
-Preview what would happen without making changes.
-
-### Retry Failed Slices
-
-```bash
-/implement-slices --repo myorg/myapp --retry-failed
+/implement-slices
+  ↓
+[1/12] Slice 1: Auth Middleware
+  → pytest test_auth.py
+  ✓ 8/8 passed → Commit #a1b2c3d
+  ✓ Task marked completed
+  ↓
+[2/12] Slice 2: Models
+  → pytest test_models.py
+  ✓ 8/8 passed → Commit #b2c3d4e
+  ✓ Task marked completed
+  ↓
+[3/12] Slice 3: Database
+  → pytest test_workflows.py
+  ✓ 3/3 passed → Commit #c3d4e5f
+  ✓ Task marked completed
+  ↓
+... (9 more slices)
+  ↓
+============================================================
+Summary: 12/12 slices completed
+PROGRESS.md updated with all results
+============================================================
 ```
-
-Re-implement only slices marked as failed.
-
-### Custom Commit Messages
-
-```bash
-/implement-slices --repo myorg/myapp \
-  --commit-template "Implement {slice_title}\n\nCloses #{issue_number}"
-```
-
-### Post-Implementation Hooks
-
-```bash
-/implement-slices --repo myorg/myapp \
-  --on-success "npm run build" \
-  --on-failure "npm run lint"
-```
-
-Run commands after each slice (success or failure).
 
 ## Best Practices
 
@@ -381,34 +354,34 @@ ls tests/test_*.py
 
 Update test mapping or create tests.
 
-## Integration with CI/CD
+## Files in This Skill
 
-This skill can be integrated with CI/CD pipelines:
+- **SKILL.md** - Complete documentation of how the skill works
+- **test-mapping.json** - Slice-to-test file mappings
+- **README.md** - This file, usage guide
 
-```bash
-# GitHub Actions example
-- name: Implement Slices
-  run: /implement-slices --repo ${{ github.repository }}
-```
+## Implementation Details
 
-Or with other tools:
-- Jenkins
-- GitLab CI
-- CircleCI
-- Travis CI
+The skill is implemented in Claude Code using:
+- **Bash** - Run pytest, git commands
+- **Read/Write** - Update PROGRESS.md
+- **TaskCreate/TaskUpdate** - Manage task list
+- **Bash** - Git commits with detailed messages
 
-## Environment
+No external Python script needed - everything uses Claude Code's native tools.
 
-The skill requires:
-- Python 3.9+
-- pytest
-- git
-- requirements.txt with all dependencies
+## Requirements
 
-## Notes
+- Python 3.9+ (for pytest)
+- pytest installed
+- git configured
+- requirements.txt present
+- Working directory: project root
 
-- Implementation requires write access to repository
-- Tests must be properly organized in tests/ directory
-- One slice at a time (sequential by default)
-- Task list updates require Claude Code context
-- PROGRESS.md is created automatically
+## Safety
+
+✓ Tests must pass before committing
+✓ No changes without successful tests
+✓ PROGRESS.md always shows current state
+✓ Easy to review what happened
+✓ Can resume/retry after interruption
