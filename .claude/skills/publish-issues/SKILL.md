@@ -4,157 +4,142 @@ Create GitHub issues for finalized feature slices.
 
 ## Purpose
 
-Once you've finalized your feature slices (e.g., using `/to-issues`), use this skill to automatically create GitHub issues for each slice. The skill handles:
-
-- Creating issues in dependency order (blockers first)
-- Linking blocking relationships between issues
-- Formatting issue bodies with acceptance criteria
-- Adding labels for triage
+After finalizing feature slices with `/to-issues`, use this skill to:
+1. Parse finalized slices (JSON file or input)
+2. Validate slices and blocking relationships
+3. Order issues by dependencies (blockers first)
+4. Create GitHub issues automatically
+5. Establish "Blocked by" links between issues
 
 ## Usage
 
 ```
-/publish-issues owner/repo slice1 slice2 slice3
+/publish-issues --repo owner/repo --file slices.json
 ```
 
-Or with a JSON file:
+Or with inline slices:
 
 ```
-/publish-issues owner/repo --from-file slices.json
+/publish-issues --repo owner/repo --slices '[{...}, {...}]'
 ```
 
 ## Input Format
 
-### Command-line Arguments
-
-```bash
-/publish-issues vamsikrish96/expense-approval \
-  "[Slice 1] Foundation: Project Setup & Auth Middleware" \
-  "[Slice 2] Domain Models & Validation" \
-  "[Slice 3] In-Memory Database Layer"
-```
-
-### JSON File Format
+### JSON File (slices.json)
 
 ```json
 [
   {
-    "title": "[Slice 1] Foundation: Project Setup & Auth Middleware",
-    "description": "Set up FastAPI with mocked Entra ID JWT auth...",
+    "title": "[Slice 1] Foundation: Project Setup",
+    "description": "Set up FastAPI with mocked Entra ID JWT auth",
     "acceptance_criteria": [
       "FastAPI app initialized",
-      "JWT token parser works",
-      "Auth middleware extracts claims"
+      "JWT token parser works"
     ],
     "blocked_by": null,
     "labels": ["slice", "foundation"]
   },
   {
-    "title": "[Slice 2] Domain Models & Validation",
-    "description": "Create Pydantic models...",
-    "acceptance_criteria": [...],
+    "title": "[Slice 2] Domain Models",
+    "description": "Create Pydantic models",
+    "acceptance_criteria": ["Models defined"],
     "blocked_by": 1,
-    "labels": ["slice", "models"]
+    "labels": ["slice"]
   }
 ]
+```
+
+### Required Fields
+- `title` - Issue title
+- `description` - What to build
+- `acceptance_criteria` - Array of acceptance criteria
+
+### Optional Fields
+- `blocked_by` - Issue number this depends on
+- `labels` - Array of labels to add
+
+## Process
+
+For each slice:
+```
+1. Parse JSON input
+2. Validate structure
+   - Check required fields
+   - Verify blocked_by references exist
+3. Order by dependencies (blockers first)
+4. Display preview
+5. Create GitHub issues in order
+   - Issue #1, #2, etc.
+   - Include acceptance criteria
+   - Add "Blocked by" section
+   - Add labels
+6. Print issue URLs
 ```
 
 ## Output
 
-- GitHub issues created in order (blockers first)
-- Links to created issues printed to console
-- Issues numbered sequentially
-- Blocking relationships established
-
-## Example
-
-### Input (JSON)
-
-```json
-[
-  {
-    "title": "[Slice 1] Foundation Setup",
-    "description": "Initialize project structure",
-    "acceptance_criteria": ["Project structure created", "Dependencies installed"],
-    "blocked_by": null
-  },
-  {
-    "title": "[Slice 2] Models",
-    "description": "Create domain models",
-    "acceptance_criteria": ["Models defined", "Validators implemented"],
-    "blocked_by": 1
-  }
-]
 ```
+Creating GitHub issues for owner/repo...
 
-### Output
+Slices to create (in order):
 
-```
-Creating GitHub issues for vamsikrish96/expense-approval...
+1. [Slice 1] Foundation: Project Setup
+2. [Slice 2] Domain Models (blocked by #1)
+3. [Slice 3] Database Layer (blocked by #2)
 
-✓ Issue #1: [Slice 1] Foundation Setup
-  https://github.com/vamsikrish96/expense-approval/issues/1
+✓ Issue #1: [Slice 1] Foundation: Project Setup
+  https://github.com/owner/repo/issues/1
 
-✓ Issue #2: [Slice 2] Models (blocked by #1)
-  https://github.com/vamsikrish96/expense-approval/issues/2
+✓ Issue #2: [Slice 2] Domain Models (blocked by #1)
+  https://github.com/owner/repo/issues/2
 
-2 issues created successfully!
+✓ Issue #3: [Slice 3] Database Layer (blocked by #2)
+  https://github.com/owner/repo/issues/3
+
+3 issues created successfully!
 ```
 
 ## Features
 
-✓ **Dependency ordering** - Creates blocker issues first, allowing forward references
-✓ **Blocking links** - Establishes "Blocked by" relationships between issues
-✓ **Formatting** - Consistently formats all issues with acceptance criteria
-✓ **Labels** - Adds configurable labels (triage, priority, etc.)
-✓ **Validation** - Validates input before creating issues
-✓ **Error handling** - Clear error messages if creation fails
+✓ **JSON parsing** - Accepts JSON file or inline slices
+✓ **Validation** - Checks structure and blocking references
+✓ **Dependency ordering** - Creates blockers first
+✓ **GitHub integration** - Creates issues via API
+✓ **Blocking links** - Establishes "Blocked by" relationships
+✓ **Preview mode** - Shows what will be created before proceeding
+✓ **Labels support** - Adds labels to each issue
 
 ## Requirements
 
 - GitHub repository must exist
-- User must have push/write access to create issues
-- GitHub authentication configured (SSH key or token)
+- User has write access to create issues
+- GitHub authentication configured (SSH or token)
+- JSON format valid
 
-## Integration with /to-issues
+## Workflow Integration
 
-This skill complements `/to-issues`:
-
-1. **Design phase**: Use `/to-issues` to break down work into slices
-2. **Review phase**: Discuss and refine slices with stakeholders
-3. **Finalize phase**: Use `/publish-issues` to create GitHub issues
-
-## Advanced Options
-
-### Custom Labels
-
-```bash
-/publish-issues owner/repo --labels "priority:high,type:feature" slices.json
 ```
-
-### Milestone Assignment
-
-```bash
-/publish-issues owner/repo --milestone "v1.0" slices.json
-```
-
-### Custom Issue Template
-
-```bash
-/publish-issues owner/repo --template custom-template.md slices.json
+/to-issues (design)
+     ↓
+Review & refine
+     ↓
+/publish-issues (create issues)
+     ↓
+/implement-slices (implement)
 ```
 
 ## Tips
 
-- **Organize slices first**: Use `/to-issues` to refine before publishing
-- **Review blockers**: Ensure blocking relationships are correct before publishing
-- **Use consistent naming**: Keep slice titles consistent across documentation
-- **Label your slices**: Use labels to organize by priority, type, or team
-- **Batch creation**: Create all related slices at once to maintain consistency
+- Use `/to-issues` first to design slices
+- Review blocking relationships before publishing
+- Publish all slices at once for consistency
+- Use labels to organize (priority, type, team)
+- Safe to re-run - existing issues won't be duplicated
 
 ## Notes
 
-- Issues are created in the order specified (or dependency order if using `--order-by-dependencies`)
-- Blocking relationships use GitHub issue references (e.g., "Blocked by #1")
-- All created issues are returned with their URLs for reference
-- Existing issues are NOT modified (safe to re-run with updated slices)
+- Issues created in dependency order
+- Blocking references use GitHub issue numbers (#1, #2, etc.)
+- All issue URLs printed at the end
+- Existing issues are NOT modified
+- Safe to interrupt - can resume with same slices

@@ -4,59 +4,75 @@ Publish finalized feature slices as GitHub issues with automatic dependency mana
 
 ## Overview
 
-This skill takes feature slices that have been designed and refined (typically using `/to-issues`), validates them, and creates GitHub issues automatically. It handles:
+This skill invokes Claude Code to:
 
-- **Dependency ordering** - Creates blocker issues first
-- **Blocking relationships** - Links issues using "Blocked by" references
-- **Consistent formatting** - All issues follow the same structure
-- **Validation** - Ensures slices are valid before publishing
-- **Sequential numbering** - Issues numbered in creation order
+1. Parse finalized slices (from JSON file)
+2. Validate structure and blocking relationships
+3. Order by dependencies (blockers first)
+4. Create GitHub issues automatically
+5. Establish "Blocked by" links
 
 ## Workflow
 
 ```
-1. Use /to-issues to design feature slices
-   ↓
-2. Refine and finalize slices with stakeholders
-   ↓
-3. Use /publish-issues to create GitHub issues
-   ↓
-4. Developers claim and work on issues in order
+/to-issues (Design slices)
+     ↓
+Review & refine
+     ↓
+/publish-issues (Create GitHub issues)
+     ↓
+GitHub issues #1, #2, #3... created with dependencies
+     ↓
+/implement-slices (Implement each issue)
 ```
 
-## Usage Examples
+## Usage
 
-### Example 1: Create issues from JSON file
-
-```bash
-/publish-issues vamsikrish96/expense-approval --from-file .claude/skills/publish-issues/example-slices.json
+```
+/publish-issues --repo owner/repo --file slices.json
 ```
 
-### Example 2: Create issues with inline JSON
+That's it! The skill handles everything else:
+- Parsing JSON
+- Validating structure
+- Ordering by dependencies
+- Creating issues via GitHub API
+- Linking dependencies
 
-```bash
-/publish-issues vamsikrish96/expense-approval \
-  '{
+## Quick Start Example
+
+### Step 1: Create slices.json
+
+```json
+[
+  {
     "title": "[Slice 1] Foundation Setup",
-    "description": "Set up FastAPI and auth",
+    "description": "Initialize FastAPI project",
     "acceptance_criteria": ["App runs", "Auth works"],
     "blocked_by": null
-  }' \
-  '{
+  },
+  {
     "title": "[Slice 2] Models",
     "description": "Create domain models",
     "acceptance_criteria": ["Models defined"],
     "blocked_by": 1
-  }'
+  }
+]
 ```
 
-### Example 3: Simple slice titles
+### Step 2: Invoke skill
 
-```bash
-/publish-issues vamsikrish96/expense-approval \
-  "[Slice 1] Foundation Setup" \
-  "[Slice 2] Models & Validation" \
-  "[Slice 3] Database Layer"
+```
+/publish-issues --repo owner/repo --file slices.json
+```
+
+### Step 3: Result
+
+```
+✓ Issue #1: [Slice 1] Foundation Setup
+✓ Issue #2: [Slice 2] Models (blocked by #1)
+
+2 issues created successfully!
 ```
 
 ## Input Format
